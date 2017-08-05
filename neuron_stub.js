@@ -6,7 +6,7 @@ class Neuron {
 	 *
 	 * @public
 	 */
-	constructor(bias=1, learningRate=0.1, weigths=[]) {
+	constructor(bias=1, learningRate=0.1, weights=[]) {
 		this.bias = bias;
 		this.learningRate = learningRate;
 		this.weights = weights;
@@ -22,7 +22,7 @@ class Neuron {
 	 * @public
 	 */
 	activate(value) {
-		return value >=0 ? 1 : 0;
+		return value >= 0 ? 1 : 0;
 	}
 
 	/**
@@ -33,7 +33,9 @@ class Neuron {
 	 *
 	 * @public
 	 */
-	weightedSum(inputs=this.inputs, weights=this.weights) {}
+	weightedSum(inputs=this.inputs, weights=this.weights) {
+		return inputs.map((inp, i) => inp * weights[i]).reduce((x, y) => x + y, 0);
+	}
 
 	/**
 	 * Метод активации
@@ -70,6 +72,7 @@ class Neuron {
 	 */
 	delta(actual, expected, input, learningRate=this.learningRate) {
 		const error = expected - actual;
+
 		return error * learningRate * input;
 	}
 
@@ -81,7 +84,20 @@ class Neuron {
 	 * @returns {Array|Boolean} - Измененные веса, либо true если вывод совпал с ожиданием
 	 *
 	 */
-	train(inputs, expected) {}
+	train(inputs, expected) {
+		if (!this.weights.length) this.init(inputs);
+		if (inputs.length != this.weights.length) inputs.push(1); // Adding the bias
+
+		// Keeping this in the training set if it didn't exist
+		if (!this.trainingSet.find(t => t.inputs.every((inp,i) => inp === inputs[i]))) this.trainingSet.push({inputs,expected});
+
+		const actual = this.evaluate(inputs);
+		if (actual == expected) return true; // Correct weights return and don't touch anything.
+
+		// Otherwise update each weight by adding the error * learningRate relative to the input
+		this.weights = this.weights.map((w,i) => w += this.delta(actual, expected,inputs[i]));
+		return this.weights;
+	}
 
 	/**
 	 * Метод обучения на обучающем наборе
@@ -89,8 +105,18 @@ class Neuron {
 	 * @param {Array} trainingSet - обучающий набор
 	 *
 	 */
-	learn(iterationCallback=()=>{}, trainingSet=this.trainingSet) {}
+	learn(iterationCallback=()=>{}, trainingSet=this.trainingSet) {
+		let success = false;
+		while (!success) {
+			// Function of your choosing that will be called after an iteration has completed
+			iterationCallback.call(this);
+			success = trainingSet.every(t => this.train(t.inputs,t.expected) === true);
+		}
+	}
 
+	predict(inputs, bias) {
+		return this.evaluate([...inputs, bias]);
+	}
 }
 
 module.exports = Neuron;

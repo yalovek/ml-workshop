@@ -1,4 +1,3 @@
-const Perceptron = require('./neuron_stub');
 const set = [
   {
     inputs: [32, 175],
@@ -29,18 +28,16 @@ const set = [
     expected: 0
   }
 ];
-
-const perceptron = new Perceptron();
-const maxX = Math.max(...set.map(({ inputs }) => inputs[0]));
-const maxY = Math.max(...set.map(({ inputs }) => inputs[1]));
-const trainSet = set.map(({ inputs, expected }) => ({
-  inputs: [inputs[0]/maxX, inputs[1]/maxY],
+const max = set.reduce((result, { inputs }) => inputs.map((input, key) => result[key] > input ? result[key] : input), []);
+const trainingSet = set.map(({ inputs, expected }) => ({
+  inputs: inputs.map((input, key) => input/max[key]),
   expected
 }));
-const testSet = set.map(({ inputs }) => [inputs[0]/maxX, inputs[1]/maxY]);
+const weights = length => Array(length).fill(Math.random());
+const weightedSum = weights => inputs => inputs.reduce((result, input, key) => input * weights[key] + result, 0);
+const activate = value => value >= 0 ? 1 : 0;
+const delta = learningRate => actual => expected => input => expected - actual * learningRate * input;
+const countWeights = weights => trainingSet => trainingSet.reduce((result, { inputs, expected }) => inputs.map((input, key) => weights[key] + delta(.1)(activate(weightedSum(weights)(inputs)))(expected)(input)), []);
+const learn = weights => trainingSet => trainingSet.every(({ inputs, expected }) => activate(weightedSum(weights)(inputs)) === expected) ? weights : countWeights(weights)(trainingSet)//learn(countWeights(weights)(trainingSet))(trainingSet);
 
-perceptron.learn(() => {
-  testSet.forEach((test) => {
-    console.log(test, perceptron.predict(test));
-  });
-}, trainSet);
+console.log(learn(weights(max.length))(trainingSet));
